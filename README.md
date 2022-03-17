@@ -44,8 +44,7 @@ Get following details from your Event Notifications Instance
 
 ## Usage
 
-Follow these steps to migrate all IOS and Android devices from your push instance to event notification instance 
-
+Follow these steps to migrate all IOS and Android devices from your push instance to event notification instance. During this migration process it is recommened to stop all the send notificaitons calls to IBM Push Notifications service instance.
 
 #### Step 1 - Source Credentials
 
@@ -69,8 +68,14 @@ Run command ```go run importPushDevicesToEN.go 2>&1 | tee logImportDevice.txt &`
 Run command ```go run importSubscriptionToEN.go  2>&1 | tee logImportDevice.txt &```, this will subscribe tags from push to en . 
 
 
-
 # NOTE
 
 - All commands run in background and stores logs in a file
-- Any failures in request will be saved in **failed_devices.csv** and **failed_subscription.csv**. After tool is finished these can be tried again by renaming to **devices.csv** and **subscription.csv** respectively
+- Any failures in request will be saved in **failed_devices.csv** and **failed_subscription.csv**. After tool is finished these can be tried again by renaming to **devices.csv** and **subscription.csv** respectively.
+
+# IMPORTANT
+  
+  From time to time the Push providers (like FCM) will expire the existing push device token and provide a new push device token. The Event Notifications service client SDK sends this new token to your service instance destination. A valid token is required to send push notifications from Event Notifications service, make sure to update the client application with latest IBM Event Notifications client SDK. The customers must update the client application to the latest version in order to make sure that a valid push token is available in the Event Notifications service. Any device still connecting to the old Push Notifications service instance, must be migrated again separately.
+  
+  If you are sending notificaiotns from both IBM Event Notifications and IBM Push Notifications service, that might result in duplicate messages at client side. 
+
