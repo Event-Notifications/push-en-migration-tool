@@ -77,5 +77,5 @@ Run command ```go run importSubscriptionToEN.go  2>&1 | tee logImportDevice.txt 
   
   From time to time the Push providers (like FCM) will expire the existing push device token and provide a new push device token. The Event Notifications service client SDK sends this new token to your service instance destination. A valid token is required to send push notifications from Event Notifications service, make sure to update the client application with latest IBM Event Notifications client SDK. The customers must update the client application to the latest version in order to make sure that a valid push token is available in the Event Notifications service. Any device still connecting to the old Push Notifications service instance, must be migrated again separately.
   
-  If you are sending notificaiotns from both IBM Event Notifications and IBM Push Notifications service, that might result in duplicate messages at client side. 
+  If you are sending notifications from both IBM Event Notifications and IBM Push Notifications service, that might result in duplicate messages at the client side. 
 
