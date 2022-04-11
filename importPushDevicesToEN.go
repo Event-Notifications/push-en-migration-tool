@@ -35,7 +35,6 @@ type IAMStruct struct {
 	AccessToken string `json:"access_token"`
 }
 
-var enurl = os.Getenv("EN_URL")
 var instanceID = os.Getenv("EN_INSTANCE_ID")
 var iosDestinationID = os.Getenv("EN_IOS_DESTINATION_ID")
 var androidDestinationID = os.Getenv("EN_ANDROID_DESTINATION_ID")
@@ -100,7 +99,7 @@ func streamInputs(done <-chan struct{}, inputs []string) <-chan string {
 	return inputCh
 }
 
-func postDevice(input string, csvwriter *csv.Writer) (string, error) {
+func postDevice(enurl string, input string, csvwriterF *csv.Writer, csvwriterS *csv.Writer) (string, error) {
 	client := &http.Client{}
 
 	inputSplit := strings.Split(input, ",")
@@ -137,19 +136,24 @@ func postDevice(input string, csvwriter *csv.Writer) (string, error) {
 	if resp.StatusCode == 401 {
 		fmt.Println("Auth Error Retrying")
 		getToken()
-		postDevice(input, csvwriter)
+		postDevice(enurl, input, csvwriterF, csvwriterS)
 	}
+
+	var strArr []string
+	strArr = append(strArr, inputSplit[0])
+	strArr = append(strArr, inputSplit[1])
+	strArr = append(strArr, inputSplit[2])
+	strArr = append(strArr, inputSplit[3])
 
 	if resp.StatusCode == 200 || resp.StatusCode == 201 {
 		fmt.Println("Registered Device with DeviceID", inputSplit[0])
+		_ = csvwriterS.Write(strArr)
+	} else if resp.StatusCode == 409 {
+		fmt.Println("Device already registered with DeviceID", inputSplit[0])
+		_ = csvwriterS.Write(strArr)
 	} else {
 		fmt.Println("Failed Device with DeviceID", inputSplit[0], resp.StatusCode)
-		var strArr []string
-		strArr = append(strArr, inputSplit[0])
-		strArr = append(strArr, inputSplit[1])
-		strArr = append(strArr, inputSplit[2])
-		strArr = append(strArr, inputSplit[3])
-		_ = csvwriter.Write(strArr)
+		_ = csvwriterF.Write(strArr)
 	}
 
 	defer resp.Body.Close()
@@ -168,7 +172,7 @@ type result struct {
 	err     error
 }
 
-func AsyncHTTP(users []string, csvwriter *csv.Writer) ([]string, error) {
+func AsyncHTTP(enurl string, users []string, csvwriterFailed *csv.Writer, csvwriterSucc *csv.Writer) ([]string, error) {
 	done := make(chan struct{})
 	defer close(done)
 
@@ -183,7 +187,7 @@ func AsyncHTTP(users []string, csvwriter *csv.Writer) ([]string, error) {
 	for i := 0; i < GOROUTINE; i++ {
 		go func() {
 			for input := range inputCh {
-				bodyStr, err := postDevice(input, csvwriter)
+				bodyStr, err := postDevice(enurl, input, csvwriterFailed, csvwriterSucc)
 				resultCh <- result{bodyStr, err}
 			}
 			wg.Done()
@@ -208,6 +212,24 @@ func AsyncHTTP(users []string, csvwriter *csv.Writer) ([]string, error) {
 
 func main() {
 	getToken()
+
+	var regionMap = make(map[string]string)
+
+	regionMap["stage"] = "https://us-south.imfpush.test.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["dallas"] = "http://us-south.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["london"] = "https://eu-gb.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["sydney"] = "https://au-syd.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["frankfurt"] = "https://eu-de.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["washington"] = "https://us-east.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["tokyo"] = "https://jp-tok.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+
+	var enurl = regionMap[os.Getenv("EN_INSTANCE_REGION")]
+
+	if enurl == "" {
+		fmt.Println("Error processing request please check setEnv.sh and source it by adding region")
+		return
+	}
+
 	devices := []string{}
 	file, err := os.Open("devices.csv")
 	if err != nil {
@@ -233,13 +255,16 @@ func main() {
 
 	start := time.Now()
 
-	csvFile, err := os.Create("failed_devices.csv")
-	csvwriter := csv.NewWriter(csvFile)
+	csvFileFailed, err := os.Create("failed_devices.csv")
+	csvFileSucc, err := os.Create("migrated_devices.csv")
+
+	csvwriterFailed := csv.NewWriter(csvFileFailed)
+	csvwriterSucc := csv.NewWriter(csvFileSucc)
 	if err != nil {
 		log.Fatalf("Failed creating devices file: %s", err)
 	}
 
-	results, err := AsyncHTTP(devices, csvwriter)
+	results, err := AsyncHTTP(enurl, devices, csvwriterFailed, csvwriterSucc)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -248,8 +273,6 @@ func main() {
 	for _, result := range results {
 		fmt.Println(result)
 	}
-	csvwriter.Flush()
-	csvFile.Close()
 
 	fmt.Println("finished in ", time.Since(start))
 }
