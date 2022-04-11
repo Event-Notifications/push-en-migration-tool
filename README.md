@@ -17,7 +17,7 @@ Ability to run bash scripts
 
 Get service credentials of your Push Notifications Instance  
 
-- Push Instance Region API URL
+- Push Instance Region - dallas/london/sydney/frankfurt/washington/tokyo/stage
 - Push Instance ID
 - Push APIKey
 - Push Client Secret 
@@ -34,7 +34,7 @@ https://cloud.ibm.com/docs/event-notifications?topic=event-notifications-en-crea
 
 Get following details from your Event Notifications Instance
 
-- EN Instance Region API URL
+- EN Instance Region - dallas/london/frankfurt/sydney/stage
 - EN Instance ID 
 - EN APIkey
 - EN APNS Destination ID generated at Step 2
@@ -57,7 +57,7 @@ Run command ```go run exportPushDeviceInFile.go 2>&1 | tee logExportDevice.txt &
 
 #### Step 3 - Export Subscriptions from Push Instance
 
-Run command ```go run exportPushSubscriptionInFile.go 2>&1 | tee logExportSubscription.txt &```, this will retrieve all subscriptions from push instance to a file named **subscriptions.csv**
+Run command ```go run exportPushSubscriptionInFile.go 2>&1 | tee logExportSubscription.txt &```, this will retrieve all subscriptions from push instance to a file named **subscription.csv**
 
 #### Step 4 - Import Devices to EN Instance
 
@@ -71,7 +71,18 @@ Run command ```go run importSubscriptionToEN.go  2>&1 | tee logImportDevice.txt 
 # NOTE
 
 - All commands run in background and stores logs in a file
-- Any failures in request will be saved in **failed_devices.csv** and **failed_subscription.csv**. After tool is finished these can be tried again by renaming to **devices.csv** and **subscription.csv** respectively.
+- Successful migrated requests will be saved in **migrated_devices.csv** and **migrated_subscription.csv**. Do not delete these files.
+- Any failures in request will be saved in **failed_devices.csv**  and **failed_subscription.csv**. This is only for information and its of no use. Can be deleted.
+
+
+After tool is finished failed requests can be tried again by running these command 
+
+``` grep -vxFf migrated_devices.csv devices.csv > devices_new.csv```
+``` grep -vxFf migrated_subscription.csv subscription.csv > subscription_new.csv```
+
+Make a backup of olde files and rename devices_new to devices and subscription_new to subscription
+
+Above commands
 
 # IMPORTANT
   
