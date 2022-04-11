@@ -209,13 +209,11 @@ func main() {
 
 	var regionMap = make(map[string]string)
 
-	regionMap["stage"] = "https://us-south.imfpush.test.cloud.ibm.com/imfpush/v1/apps/"
-	regionMap["dallas"] = "http://us-south.imfpush.cloud.ibm.com/imfpush/v1/apps/"
-	regionMap["london"] = "https://eu-gb.imfpush.cloud.ibm.com/imfpush/v1/apps/"
-	regionMap["sydney"] = "https://au-syd.imfpush.cloud.ibm.com/imfpush/v1/apps/"
-	regionMap["frankfurt"] = "https://eu-de.imfpush.cloud.ibm.com/imfpush/v1/apps/"
-	regionMap["washington"] = "https://us-east.imfpush.cloud.ibm.com/imfpush/v1/apps/"
-	regionMap["tokyo"] = "https://jp-tok.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["stage"] = "https://us-south.event-notifications.cloud.ibm.com/event-notifications/v1/instances/"
+	regionMap["dallas"] = "https://us-south.event-notifications.cloud.ibm.com/event-notifications/v1/instances/"
+	regionMap["london"] = "https://eu-gb.event-notifications.cloud.ibm.com/event-notifications/v1/instances/"
+	regionMap["sydney"] = "https://au-syd.event-notifications.cloud.ibm.com/event-notifications/v1/instances/"
+	regionMap["frankfurt"] = "https://eu-de.event-notifications.cloud.ibm.com/event-notifications/v1/instances/"
 
 	var enurl = regionMap[os.Getenv("EN_INSTANCE_REGION")]
 
