@@ -35,7 +35,6 @@ type IAMStruct struct {
 	AccessToken string `json:"access_token"`
 }
 
-var enurl = os.Getenv("EN_URL")
 var instanceID = os.Getenv("EN_INSTANCE_ID")
 var iosDestinationID = os.Getenv("EN_IOS_DESTINATION_ID")
 var androidDestinationID = os.Getenv("EN_ANDROID_DESTINATION_ID")
@@ -99,7 +98,7 @@ func streamInputs(done <-chan struct{}, inputs []string) <-chan string {
 	return inputCh
 }
 
-func makeSubscribeCall(suburl string, device_id string, tag_name string, csvwriter *csv.Writer) (string, error) {
+func makeSubscribeCall(suburl string, device_id string, tag_name string, csvwriterF *csv.Writer, csvwriterS *csv.Writer) (string, error) {
 	client := &http.Client{}
 
 	postBody, _ := json.Marshal(map[string]string{
@@ -118,7 +117,7 @@ func makeSubscribeCall(suburl string, device_id string, tag_name string, csvwrit
 
 	if resp.StatusCode == 401 {
 		getToken()
-		makeSubscribeCall(suburl, device_id, tag_name, csvwriter)
+		makeSubscribeCall(suburl, device_id, tag_name, csvwriterF, csvwriterS)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -126,15 +125,20 @@ func makeSubscribeCall(suburl string, device_id string, tag_name string, csvwrit
 		return "", err
 	}
 
+	var strArr []string
+	strArr = append(strArr, tag_name)
+	strArr = append(strArr, device_id)
+
 	if resp.StatusCode == 200 || resp.StatusCode == 201 {
 		fmt.Println("Registered Subscription with response", string(body))
+		_ = csvwriterS.Write(strArr)
+	} else if resp.StatusCode == 409 {
+		fmt.Println("Subscription already exists with DeviceID", device_id, tag_name, resp.StatusCode)
+		_ = csvwriterS.Write(strArr)
+		return "", err
 	} else {
-		fmt.Println("Failed Device with DeviceID", device_id, resp.StatusCode)
-		var strArr []string
-		strArr = append(strArr, tag_name)
-		strArr = append(strArr, device_id)
-
-		_ = csvwriter.Write(strArr)
+		fmt.Println("Failed Subscription with DeviceID", device_id, tag_name, resp.StatusCode)
+		_ = csvwriterF.Write(strArr)
 		return "", err
 	}
 
@@ -143,15 +147,15 @@ func makeSubscribeCall(suburl string, device_id string, tag_name string, csvwrit
 	return string(body), nil
 }
 
-func postDevice(input string, csvwriter *csv.Writer) (string, error) {
+func postDevice(enurl string, input string, csvwriterF *csv.Writer, csvwriterS *csv.Writer) (string, error) {
 
 	inputSplit := strings.Split(input, ",")
 
 	en_ios_sub_url := enurl + instanceID + "/destinations/" + iosDestinationID + "/tag_subscriptions"
 	en_fcm_sub_url := enurl + instanceID + "/destinations/" + androidDestinationID + "/tag_subscriptions"
 
-	makeSubscribeCall(en_fcm_sub_url, inputSplit[1], inputSplit[0], csvwriter)
-	makeSubscribeCall(en_ios_sub_url, inputSplit[1], inputSplit[0], csvwriter)
+	makeSubscribeCall(en_fcm_sub_url, inputSplit[1], inputSplit[0], csvwriterF, csvwriterS)
+	makeSubscribeCall(en_ios_sub_url, inputSplit[1], inputSplit[0], csvwriterF, csvwriterS)
 
 	return "", nil
 }
@@ -161,7 +165,7 @@ type result struct {
 	err     error
 }
 
-func AsyncHTTP(users []string, csvwriter *csv.Writer) ([]string, error) {
+func AsyncHTTP(enurl string, users []string, csvwriterF *csv.Writer, csvwriterS *csv.Writer) ([]string, error) {
 	done := make(chan struct{})
 	defer close(done)
 
@@ -176,7 +180,7 @@ func AsyncHTTP(users []string, csvwriter *csv.Writer) ([]string, error) {
 	for i := 0; i < GOROUTINE; i++ {
 		go func() {
 			for input := range inputCh {
-				bodyStr, err := postDevice(input, csvwriter)
+				bodyStr, err := postDevice(enurl, input, csvwriterF, csvwriterS)
 				resultCh <- result{bodyStr, err}
 			}
 			wg.Done()
@@ -202,6 +206,25 @@ func AsyncHTTP(users []string, csvwriter *csv.Writer) ([]string, error) {
 
 func main() {
 	getToken()
+
+	var regionMap = make(map[string]string)
+
+	regionMap["dev"] = "https://notifications-dev-02072d4876b4d118c3c99d947398ca94-0001.us-south.containers.appdomain.cloud/event-notifications/v1/instances/"
+	regionMap["stage"] = "https://us-south.imfpush.test.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["dallas"] = "http://us-south.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["london"] = "https://eu-gb.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["sydney"] = "https://au-syd.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["frankfurt"] = "https://eu-de.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["washington"] = "https://us-east.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["tokyo"] = "https://jp-tok.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+
+	var enurl = regionMap[os.Getenv("EN_INSTANCE_REGION")]
+
+	if enurl == "" {
+		fmt.Println("Error processing request please check setEnv.sh and source it by adding region")
+		return
+	}
+
 	subs := []string{}
 
 	file, err := os.Open("subscription.csv")
@@ -232,7 +255,13 @@ func main() {
 		log.Fatalf("Failed creating devices file: %s", err)
 	}
 
-	results, err := AsyncHTTP(subs, csvwriter)
+	csvFileFailed, err := os.Create("failed_subscription.csv")
+	csvFileSucc, err := os.Create("migrated_subscription.csv")
+
+	csvwriterFailed := csv.NewWriter(csvFileFailed)
+	csvwriterSucc := csv.NewWriter(csvFileSucc)
+
+	results, err := AsyncHTTP(enurl, subs, csvwriterFailed, csvwriterSucc)
 	if err != nil {
 		fmt.Println(err)
 		return
