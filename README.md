@@ -83,6 +83,5 @@ After tool is finished failed requests can be tried again by running these comma
 
 Make a backup of old files and rename devices_new to devices and subscription_new to subscription
 
-Above commands
- 
+After running these commands restart the import tool
 
