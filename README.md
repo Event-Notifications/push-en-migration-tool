@@ -80,13 +80,8 @@ After tool is finished failed requests can be tried again by running these comma
 ``` grep -vxFf migrated_devices.csv devices.csv > devices_new.csv```
 ``` grep -vxFf migrated_subscription.csv subscription.csv > subscription_new.csv```
 
-Make a backup of olde files and rename devices_new to devices and subscription_new to subscription
+Make a backup of old files and rename devices_new to devices and subscription_new to subscription
 
 Above commands
-
-# IMPORTANT
-  
-  From time to time the Push providers (like FCM) will expire the existing push device token and provide a new push device token. The Event Notifications service client SDK sends this new token to your service instance destination. A valid token is required to send push notifications from Event Notifications service, make sure to update the client application with latest IBM Event Notifications client SDK. The customers must update the client application to the latest version in order to make sure that a valid push token is available in the Event Notifications service. Any device still connecting to the old Push Notifications service instance, must be migrated again separately.
-  
-  If you are sending notifications from both IBM Event Notifications and IBM Push Notifications service, that might result in duplicate messages at the client side. 
+ 
 
