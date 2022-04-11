@@ -43,6 +43,23 @@ var instanceID = os.Getenv("PUSH_INSTANCE_ID")
 
 func main() {
 
+	var regionMap = make(map[string]string)
+
+	regionMap["stage"] = "https://us-south.imfpush.test.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["dallas"] = "http://us-south.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["london"] = "https://eu-gb.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["sydney"] = "https://au-syd.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["frankfurt"] = "https://eu-de.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["washington"] = "https://us-east.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+	regionMap["tokyo"] = "https://jp-tok.imfpush.cloud.ibm.com/imfpush/v1/apps/"
+
+	var pushurl = regionMap[os.Getenv("PUSH_INSTANCE_REGION")]
+
+	if pushurl == "" {
+		fmt.Println("Error processing request please check setEnv.sh and source it by adding region")
+		return
+	}
+
 	api := "/subscriptions?expand=true&offset=0&size=500"
 	csvFile, err := os.Create("subscription.csv")
 	csvwriter := csv.NewWriter(csvFile)
@@ -96,6 +113,7 @@ func getDevice(url string, csvwriter *csv.Writer) error {
 		if sub.TagName == "Push.ALL" {
 			continue
 		}
+
 		strArr = append(strArr, sub.TagName)
 		strArr = append(strArr, sub.DeviceID)
 
