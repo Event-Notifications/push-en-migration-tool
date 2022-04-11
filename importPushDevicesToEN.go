@@ -215,7 +215,7 @@ func main() {
 
 	var regionMap = make(map[string]string)
 
-	regionMap["stage"] = "https://us-south.event-notifications.cloud.ibm.com/event-notifications/v1/instances/"
+	regionMap["stage"] = "https://us-south.event-notifications.test.cloud.ibm.com/event-notifications/v1/instances/"
 	regionMap["dallas"] = "https://us-south.event-notifications.cloud.ibm.com/event-notifications/v1/instances/"
 	regionMap["london"] = "https://eu-gb.event-notifications.cloud.ibm.com/event-notifications/v1/instances/"
 	regionMap["sydney"] = "https://au-syd.event-notifications.cloud.ibm.com/event-notifications/v1/instances/"
