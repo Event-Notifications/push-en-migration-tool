@@ -209,7 +209,6 @@ func main() {
 
 	var regionMap = make(map[string]string)
 
-	regionMap["dev"] = "https://notifications-dev-02072d4876b4d118c3c99d947398ca94-0001.us-south.containers.appdomain.cloud/event-notifications/v1/instances/"
 	regionMap["stage"] = "https://us-south.imfpush.test.cloud.ibm.com/imfpush/v1/apps/"
 	regionMap["dallas"] = "http://us-south.imfpush.cloud.ibm.com/imfpush/v1/apps/"
 	regionMap["london"] = "https://eu-gb.imfpush.cloud.ibm.com/imfpush/v1/apps/"
