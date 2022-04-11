@@ -78,6 +78,7 @@ Run command ```go run importSubscriptionToEN.go  2>&1 | tee logImportDevice.txt 
 After tool is finished failed requests can be tried again by running these command 
 
 ``` grep -vxFf migrated_devices.csv devices.csv > devices_new.csv```
+
 ``` grep -vxFf migrated_subscription.csv subscription.csv > subscription_new.csv```
 
 Make a backup of old files and rename devices_new to devices and subscription_new to subscription
